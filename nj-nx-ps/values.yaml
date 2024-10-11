@@ -1,0 +1,17 @@
+replicaCount: 1
+
+service:
+  name: helm-njnginx-svc
+  app: helm-njnginx
+  type: ClusterIP
+  port: 80
+
+deployment:
+  name: helm-njnginx-deploy
+  app: helm-njnginx
+  image: nginx
+  tags: alpine3.20
+  port: 80
+
+configmap:
+  name: njnginx-config

@@ -1,0 +1,137 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-nodejs-deploy
+  labels:
+    app: k8s-nodejs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8s-nodejs
+  template:
+    metadata:
+      name: k8s-nodejs
+      labels:
+        app: k8s-nodejs
+    spec:
+      containers:
+        - name: k8s-nodejs
+          image: sun12wook11/k8s-nodejs:v2
+
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+          env:
+            - name: DB_HOST
+              value: k8s-postgre-svc
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-njnginx-deploy
+  labels:
+    app: k8s-njnginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8s-njnginx
+  template:
+    metadata:
+      name: k8s-njnginx
+      labels:
+        app: k8s-njnginx
+    spec:
+      containers:
+        - name: k8s-njnginx
+          image: nginx
+          ports:
+            - containerPort: 80
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /etc/nginx/conf.d
+              name: nginx-config
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: njnginx-config
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgre-deploy
+  labels:
+    app: postgre
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgre
+  template:
+    metadata:
+      name: postgre
+      labels:
+        app: postgre
+    spec:
+      containers:
+        - name: postgre
+          image: postgres:14
+          ports:
+            - containerPort: 5432
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: postgre-pets-secret
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgre-storage
+            - mountPath: /docker-entrypoint-initdb.d
+              name: initdb-script
+      volumes:
+        - name: postgre-storage
+          emptyDir: {}
+        - name: initdb-script
+          configMap:
+            name: pets-initdb-config
+
+---
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-nodejs-svc
+spec:
+  selector:
+    app: k8s-nodejs
+  ports:
+    - port: 3000
+      protocol: TCP
+      targetPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-njnginx-svc
+spec:
+  selector:
+    app: k8s-njnginx
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-postgre-svc
+spec:
+  selector:
+    app: postgre
+  ports:
+    - port: 5432
+      protocol: TCP
+      targetPort: 5432
